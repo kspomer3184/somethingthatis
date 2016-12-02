@@ -1,0 +1,3 @@
+# Ignore all of Python's feces
+__pycache__
+*.pyc
