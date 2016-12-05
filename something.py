@@ -9,10 +9,16 @@ class Something:
     def fitIn(measure):
         return int( measure/self.measure )
 
+class Unit:
+    def __init__(self, name, SIFactor):
+        self.name = name
+        self.SIFactor = SIFactor
+
 # A class for turning incomprehensible lengths into comprehensible ones
-class lengthComprehender:
+class LengthComprehender:
     def __init__(self):
         self.things = []
+        self.units=['m', 'mi', 'ly']
 
     def __sort__(self):
         self.things.sort(key=lambda x:x.measure)
@@ -27,18 +33,27 @@ class lengthComprehender:
             while True:
                 # Get a nicely formatted line
                 line=f.readline()
-                if line=='': # If it blank, we're done
+                if line=='' or line=='\n': # If it blank, we're done
                     break
 
-                # Cut off that pesky newline character
-                if line[-1] == '\n':
-                    line=line[:-1]
-                    if line=='':# If that's all that was there, we're done
-                        break
+                # Try to make the thing
+                splitLine = line.split(',')
 
-                # Make the thing
-                name, measureStr = line.split(',')
-                measure=float(measureStr)
+                # If it has units we don't recognize, skip it
+                unit = splitLine[2].strip().lower()
+                if unit not in self.units:
+                    continue
+
+                # Do unit conversion if necesary
+                # TODO: Use Unit object to do general conversion
+                # if unit == 'm':
+                #     measure = float(splitLine[1])
+                # elif unit == 'mi':
+                #     measure = float(splitLine[1]) * 1609.34
+                # elif unit == 'ly':
+                #     measure = float(splitLine[1]) * 9.461*10**15
+
+                name = splitLine[0].strip()
                 self.things.append( Something(name, measure, 'm') )
 
     def comprehend(self, measure):
@@ -77,8 +92,8 @@ if __name__ == '__main__':
     # Boring testing stuff... move along
 
     # Setup comprehender
-    lenComp=lengthComprehender()
-    lenComp.load('data/lengths-m')
+    lenComp=LengthComprehender()
+    lenComp.load('data/lengths')
 
     # Let the user know what's up
     print('Input a length in meters to have it turned into something real!')
