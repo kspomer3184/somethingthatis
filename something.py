@@ -14,11 +14,19 @@ class Unit:
         self.name = name
         self.SIFactor = SIFactor
 
-# A class for turning incomprehensible lengths into comprehensible ones
-class LengthComprehender:
-    def __init__(self):
+# A class for turning incomprehensible numbers into comprehensible ones
+class Comprehender:
+    def __init__(self, units, SIUnitName):
+        # Things we know the measure of
         self.things = []
-        self.units=['m', 'mi', 'ly']
+
+        # Put unit objects into dictionary for easier reference
+        self.units={}
+        for unit in units:
+            self.units[unit.name] = unit
+
+        # The name of the standard SI unit for the dimention we specialize in
+        self.SIUnitName = SIUnitName
 
     def __sort__(self):
         self.things.sort(key=lambda x:x.measure)
@@ -38,23 +46,23 @@ class LengthComprehender:
 
                 # Try to make the thing
                 splitLine = line.split(',')
+                unitName = splitLine[2].strip().lower()
+                measure = float(splitLine[1])
+                name = splitLine[0].strip()
 
                 # If it has units we don't recognize, skip it
-                unit = splitLine[2].strip().lower()
-                if unit not in self.units:
+                unitName = splitLine[2].strip().lower()
+                if unitName not in self.units:
                     continue
 
-                # Do unit conversion if necesary
-                # TODO: Use Unit object to do general conversion
-                # if unit == 'm':
-                #     measure = float(splitLine[1])
-                # elif unit == 'mi':
-                #     measure = float(splitLine[1]) * 1609.34
-                # elif unit == 'ly':
-                #     measure = float(splitLine[1]) * 9.461*10**15
+                # Do unit conversion
+                unit = self.units[unitName]
+                SIMeasure = measure * unit.SIFactor
 
-                name = splitLine[0].strip()
-                self.things.append( Something(name, measure, 'm') )
+                self.things.append( Something(name, SIMeasure, self.SIUnitName) )
+
+    def isKnownUnit(self, unitName):
+        return unitName in self.units
 
     def comprehend(self, measure):
         """
@@ -87,6 +95,15 @@ class LengthComprehender:
 
         return output
 
+# Comprehender specialized in lengths
+class LengthComprehender( Comprehender ):
+    def __init__(self):
+        units = [ Unit('m',  1),
+                  Unit('mi', 1609.34),
+                  Unit('ly', 9.461*10**15) ]
+
+        super(LengthComprehender, self).__init__(units, 'm')
+
 
 if __name__ == '__main__':
     # Boring testing stuff... move along
@@ -101,8 +118,15 @@ if __name__ == '__main__':
     # Run forever!!!
     while True:
         # Get input
+        inputStr = input('>').strip().lower()
+
+        # Check for known commands
+        if inputStr == 'exit':
+            break
+
+        # Try to make a numeric value
         try:
-            x = int(input('>'))
+            x = float( inputStr )
         except Exception:
             print('Invalid input.')
             continue
