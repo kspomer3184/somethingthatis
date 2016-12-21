@@ -1,3 +1,5 @@
+import re
+
 # A class to hold information about real things with dimentions
 class Something:
     def __init__(self, name, measure, units):
@@ -62,7 +64,7 @@ class Comprehender:
                 self.things.append( Something(name, SIMeasure, self.SIUnitName) )
 
     def isKnownUnit(self, unitName):
-        return unitName in self.units
+        return unitName in [unit.name for unit in self.units]
 
     def comprehend(self, measure):
         """
@@ -104,10 +106,37 @@ class LengthComprehender( Comprehender ):
 
         super(LengthComprehender, self).__init__(units, 'm')
 
+# Comprehender specialized in masses/weights
+class MassComprehender( Comprehender ):
+    def __init__(self):
+        units = [ Unit('kg',  1),
+                  Unit('g', 1e-3),
+                  Unit('mg', 1e-6),
+                  Unit('ton', 907.185) ]
 
-if __name__ == '__main__':
-    # Boring testing stuff... move along
+        super(LengthComprehender, self).__init__(units, 'm')
 
+# A class to generate JSON responses to dirty user inputs. Will be primary
+# back-end point of contact for web interface
+class QuaryParser:
+    def __init__(self, comprehenders=[]):
+        self.comprehenders = comprehenders
+        self.reProgram = re.compile(r'([\d\.]+)\s*([a-z]+)$')
+
+    def process(self, quary):
+        # Kill all padding whitespace and make sure everything is lowercase
+        quary = quary.strip().lower()
+
+        # If there are commas, ditch those
+        quary = quary.replace(',', '')
+
+        # Use regex to pull out the number and the unit
+        result = self.reProgram.match(quary)
+        numberStr, unitName = result.group(1,2)
+
+
+
+def RunInteractive():
     # Setup comprehender
     lenComp=LengthComprehender()
     lenComp.load('data/lengths')
@@ -145,3 +174,19 @@ if __name__ == '__main__':
                     if thing.name[-2] == 's':
                         plural='es'
                 print( '{} {}{}'.format(number, thing.name, plural) )
+
+if __name__ == '__main__':
+    # Boring testing stuff... move along
+    parser = QuaryParser()
+
+    # Run forever!!!
+    while True:
+        # Get input
+        inputStr = input('>').strip().lower()
+
+        # Check for known commands
+        if inputStr == 'exit':
+            break
+
+        responses = parser.process(inputStr)
+        print(responses)
