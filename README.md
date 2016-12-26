@@ -1,12 +1,12 @@
 Usage
 =====
-To start the web server, simply run the *start_server.sh* script from the
+To start the web server, simply run the `start_server.sh` script from the
 root project directory. The web API can then be accessed using a get request
 of the from,
 
     localhost:5000/api&input="<input>"
 
-where *<input>* is something a user might put in the main text box. Some
+where `<input>` is something a user might put in the main text box. Some
 example inputs and outputs might be
 
     INPUT:
