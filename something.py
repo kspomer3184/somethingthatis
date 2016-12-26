@@ -1,11 +1,12 @@
 import re
+import json
 
 # A class to hold information about real things with dimentions
 class Something:
-    def __init__(self, name, measure, units):
+    def __init__(self, name, measure, unit):
         self.name=name
         self.measure=measure
-        self.units=units
+        self.unit=unit
 
     # How many of these things fit in here?
     def fitIn(measure):
@@ -23,9 +24,9 @@ class Comprehender:
         self.things = []
 
         # Put unit objects into dictionary for easier reference
-        self.units={}
+        self.unitTable={}
         for unit in units:
-            self.units[unit.name] = unit
+            self.unitTable[unit.name] = unit
 
         # The name of the standard SI unit for the dimention we specialize in
         self.SIUnitName = SIUnitName
@@ -54,19 +55,19 @@ class Comprehender:
 
                 # If it has units we don't recognize, skip it
                 unitName = splitLine[2].strip().lower()
-                if unitName not in self.units:
+                if unitName not in self.unitTable:
                     continue
 
                 # Do unit conversion
-                unit = self.units[unitName]
+                unit = self.unitTable[unitName]
                 SIMeasure = measure * unit.SIFactor
 
                 self.things.append( Something(name, SIMeasure, self.SIUnitName) )
 
-    def isKnownUnit(self, unitName):
-        return unitName in [unit.name for unit in self.units]
+    def knowsUnit(self, unitName):
+        return unitName in [unit.name for unit in self.unitTable.values()]
 
-    def comprehend(self, measure):
+    def comprehend(self, measure, unitName=None):
         """
         Output is in the form of a list a tuples. For each tuple,
         the first element is the number and the second element is
@@ -74,6 +75,15 @@ class Comprehender:
         """
         # Start by sorting our list of things
         self.__sort__()
+
+        # Make sure the measure is in standard units
+        if unitName:
+            for unit in self.unitTable.values():
+                if unit.name == unitName:
+                    measure *= unit.SIFactor
+                    break
+            else:
+                raise Exception('Unit not recognized: {}'.format(unitName))
 
         # Now the meat
         remainder = measure
@@ -133,7 +143,23 @@ class QuaryParser:
         # Use regex to pull out the number and the unit
         result = self.reProgram.match(quary)
         numberStr, unitName = result.group(1,2)
+        number = float(numberStr)
 
+        # Find the comprehender that deals with these units
+        result = None
+        for comprehender in self.comprehenders:
+            if comprehender.knowsUnit(unitName):
+                result = comprehender.comprehend(measure=number, unitName=unitName)
+                break
+
+
+        # Get the result into a JSON friendly form
+        response = []
+        for number, thing in result:
+            response.append( (number, thing.name) )
+
+        # Convert to JSON and return
+        return json.dumps( response )
 
 
 def RunInteractive():
@@ -177,7 +203,9 @@ def RunInteractive():
 
 if __name__ == '__main__':
     # Boring testing stuff... move along
-    parser = QuaryParser()
+    lenComp=LengthComprehender()
+    lenComp.load('data/lengths')
+    parser = QuaryParser( [lenComp] )
 
     # Run forever!!!
     while True:
@@ -188,5 +216,5 @@ if __name__ == '__main__':
         if inputStr == 'exit':
             break
 
-        responses = parser.process(inputStr)
-        print(responses)
+        response = parser.process(inputStr)
+        print(response)
